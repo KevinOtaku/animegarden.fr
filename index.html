@@ -170,3 +170,440 @@ fetchAnime(currentSeasonUrl, 'current');
 
 </body>
 </html>
+<nav style="background:#00b894; padding: 10px;">
+  <a href="index.html" style="margin-right: 15px; color: white; text-decoration: none;">Accueil</a>
+  <a href="actus.html" style="margin-right: 15px; color: white; text-decoration: none;">Actualités</a>
+  <a href="top10.html" style="margin-right: 15px; color: white; text-decoration: none;">Top 10</a>
+  <a href="recherche.html" style="color: white; text-decoration: none;">Recherche</a>
+</nav>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualités - AnimeGarden</title>
+</head>
+<body>
+  <h1>📰 Actualités des animés</h1>
+  <p>Bientôt ici : les dernières annonces et nouveautés sur les animés !</p>
+  <a href="index.html">← Retour à l'accueil</a>
+</body>
+</html>
+const animes = data.data.slice(0, 8);
+const animes = data.data.slice(0, 20);
+background-image: url('https://images4.alphacoders.com/132/1324194.png');
+<header>
+  ...
+</header>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat AnimeGarden</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      background: #00b894;
+      color: white;
+      padding: 15px 0;
+      margin: 0;
+    }
+    #chat-box {
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      height: 400px;
+      overflow-y: scroll;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .message {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    #message-form {
+      max-width: 600px;
+      margin: 20px auto;
+      display: flex;
+    }
+    #name, #message {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #name {
+      width: 20%;
+      margin-right: 10px;
+    }
+    #message {
+      flex: 1;
+      margin-right: 10px;
+    }
+    #send-btn {
+      padding: 10px 20px;
+      background: #00b894;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>💬 Espace de discussion - AnimeGarden</h1>
+
+<div id="chat-box"></div>
+
+<form id="message-form">
+  <input type="text" id="name" placeholder="Pseudo" required />
+  <input type="text" id="message" placeholder="Votre message..." required />
+  <button type="submit" id="send-btn">Envoyer</button>
+</form>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<script>
+  // 🔧 REMPLACER PAR TES INFOS FIREBASE :
+  const firebaseConfig = {
+    apiKey: "TON_API_KEY",
+    authDomain: "TON_PROJET.firebaseapp.com",
+    databaseURL: "https://TON_PROJET.firebaseio.com",
+    projectId: "TON_PROJET_ID",
+    storageBucket: "TON_PROJET.appspot.com",
+    messagingSenderId: "TON_MESSAGING_ID",
+    appId: "TON_APP_ID"
+  };
+
+  // Initialisation
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const chatBox = document.getElementById("chat-box");
+  const messageForm = document.getElementById("message-form");
+  const nameInput = document.getElementById("name");
+  const messageInput = document.getElementById("message");
+
+  messageForm.addEventListener("submit", function(e) {
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    const message = messageInput.value.trim();
+
+    if (name && message) {
+      db.ref("messages").push({
+        name: name,
+        message: message,
+        timestamp: Date.now()
+      });
+      messageInput.value = "";
+    }
+  });
+
+  // Affichage des messages
+  db.ref("messages").on("child_added", function(snapshot) {
+    const msg = snapshot.val();
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.innerText = `${msg.name} : ${msg.message}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
+<script>
+  const userRef = firebase.database().ref("visitors");
+
+  // Incrémente à chaque visite
+  userRef.push({
+    timestamp: Date.now()
+  });
+
+  // Compte le nombre total de visites
+  userRef.once("value", function(snapshot) {
+    const total = snapshot.numChildren();
+    const totalEl = document.createElement("div");
+    totalEl.style.position = "fixed";
+    totalEl.style.bottom = "10px";
+    totalEl.style.right = "10px";
+    totalEl.style.background = "#00b894";
+    totalEl.style.color = "white";
+    totalEl.style.padding = "10px";
+    totalEl.style.borderRadius = "5px";
+    totalEl.innerText = `👁️ Visites totales : ${total}`;
+    document.body.appendChild(totalEl);
+  });
+</script>
+<script>
+  const onlineRef = firebase.database().ref("onlineUsers");
+  const userId = "user_" + Math.random().toString(36).substring(2);
+
+  const userStatus = onlineRef.child(userId);
+  userStatus.set(true);
+  userStatus.onDisconnect().remove();
+
+  onlineRef.on("value", function(snapshot) {
+    const online = snapshot.numChildren();
+    const onlineEl = document.getElementById("online-counter");
+    if (onlineEl) {
+      onlineEl.innerText = `🟢 Utilisateurs en ligne : ${online}`;
+    }
+  });
+</script>
+<div id="online-counter" style="position: fixed; bottom: 50px; right: 10px; background: #2d3436; color: white; padding: 10px; border-radius: 5px;">
+  🟢 Utilisateurs en ligne : 0
+</div>
+const animes = data.data.slice(0, 20);
+const animes = data.data.slice(0, 100);
+<section>
+  <h2>🎯 Grandes recommandations animés</h2>
+  <div id="large-recommendations" class="cards"></div>
+</section>
+
+<script>
+  async function fetchLargeRecommendations() {
+    const url = 'https://api.jikan.moe/v4/top/anime?page=1'; // Page 1 (parfois plusieurs pages)
+    const container = document.getElementById('large-recommendations');
+    container.innerHTML = 'Chargement …';
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      // Si une seule page ne suffit pas, tu peux appeler page=2, page=3, etc.
+      const animes = data.data.slice(0, 100); // prend les 100 premiers
+      container.innerHTML = ''; // vider message “chargement”
+
+      animes.forEach(anime => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.innerHTML = `
+          <img src="${anime.images.webp.large_image_url}" alt="${anime.title}" />
+          <h3>${anime.title}</h3>
+          <p>${anime.synopsis ? anime.synopsis.substring(0, 80) + '…' : 'Pas de description.'}</p>
+        `;
+        container.appendChild(card);
+      });
+    } catch(error) {
+      container.innerHTML = 'Erreur de chargement.';
+      console.error(error);
+    }
+  }
+
+  fetchLargeRecommendations();
+</script>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Top 100 Mangas – AnimeGarden</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max‑width: 800px; margin: auto; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #00b894; color: white; }
+    tr:nth‑child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Top 100 Mangas – Ventes/Popularité</h1>
+  <table>
+    <tr><th>Rang</th><th>Titre</th><th>Copies vendues / vues</th></tr>
+    <tr><td>1</td><td>Jujutsu Kaisen</td><td>~3 368 504 exemplaires (Japan 1H 2025)</td></tr>
+    <tr><td>2</td><td>Dandadan</td><td>~2 536 995 exemplaires</td></tr>
+    <tr><td>3</td><td>Blue Lock</td><td>~1 898 324 exemplaires</td></tr>
+    <!-- Ajouter jusqu'à 100 lignes -->
+  </table>
+</body>
+</html>
+<!-- Barre de recherche -->
+<div style="max‑width:500px; margin:20px auto; text-align:center;">
+  <input type="text" id="globalSearch" placeholder="Rechercher un animé ou manga…" style="width:80%; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:16px;">
+</div>
+<div id="searchResults" style="max‑width:1000px; margin:auto; display:flex; flex-wrap:wrap; gap:15px;"></div>
+
+<script>
+  const searchInput = document.getElementById('globalSearch');
+  const resultsContainer = document.getElementById('searchResults');
+
+  searchInput.addEventListener('keyup', async function(e) {
+    const query = e.target.value.trim();
+    if (query.length < 2) {
+      resultsContainer.innerHTML = ''; 
+      return;
+    }
+
+    // Appel API Jikan : recherche animés + mangas
+    try {
+      const animeRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=10`);
+      const animeData = await animeRes.json();
+      const mangaRes = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(query)}&limit=10`);
+      const mangaData = await mangaRes.json();
+
+      // Vider les résultats
+      resultsContainer.innerHTML = '';
+      // Fonction d’affichage
+      function showItems(items, type) {
+        items.data.forEach(item => {
+          const card = document.createElement('div');
+          card.style = "background:white;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);width:180px;overflow:hidden;cursor:pointer;";
+          card.innerHTML = `
+            <img src="${item.images.webp.large_image_url}" alt="${item.title}" style="width:100%;height:240px;object‑fit:cover;">
+            <h3 style="margin:10px;font-size:16px;color:#2d3436;">${item.title}</h3>
+            <p style="margin:0 10px 10px;font-size:13px;color:#555;">${item.synopsis ? item.synopsis.substring(0,70)+'…' : ''}</p>
+            <p style="margin:0 10px 10px;font-size:12px;color:#00b894;">${type}</p>
+          `;
+          resultsContainer.appendChild(card);
+        });
+      }
+
+      showItems(animeData, 'Animé');
+      showItems(mangaData, 'Manga');
+
+    } catch(err) {
+      console.error(err);
+      resultsContainer.innerHTML = '<p style="color:red;">Erreur lors de la recherche.</p>';
+    }
+  });
+</script>
+<!-- Firebase App (SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "TA_CLE_API_ICI",
+    authDomain: "TON_PROJET.firebaseapp.com",
+    projectId: "TON_PROJET_ID",
+    appId: "TON_APP_ID",
+  };
+
+  // Initialisation
+  firebase.initializeApp(firebaseConfig);
+</script>
+<h2>Connexion</h2>
+<button onclick="loginGoogle()">Se connecter avec Google</button>
+<button onclick="loginFacebook()">Se connecter avec Facebook</button>
+
+<script>
+  const auth = firebase.auth();
+
+  function loginGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+      .then(result => {
+        alert("Bienvenue " + result.user.displayName);
+      })
+      .catch(error => {
+        console.error(error);
+        alert("Erreur de connexion Google");
+      });
+  }
+
+  function loginFacebook() {
+    const provider = new firebase.auth.FacebookAuthProvider();
+    auth.signInWithPopup(provider)
+      .then(result => {
+        alert("Bienvenue " + result.user.displayName);
+      })
+      .catch(error => {
+        console.error(error);
+        alert("Erreur de connexion Facebook");
+      });
+  }
+</script>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Top 100 Openings – AnimeGarden</title>
+  <style>
+    body { font‑family: Arial, sans‑serif; margin:20px; max‑width:1000px; }
+    h1 { text-align:center; }
+    table { width:100%; border‑collapse: collapse; margin‑top:20px; }
+    th, td { border:1px solid #ccc; padding:8px; text‑align:left; }
+    th { background:#00b894; color:white; }
+    tr:nth‑child(even) { background:#f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Top 100 Openings d’Animé</h1>
+  <table>
+    <tr><th>Rang</th><th>Opening</th><th>Série</th><th>Année</th></tr>
+    <tr><td>1</td><td>“Idol”</td><td>:contentReference[oaicite:1]{index=1}</td><td>2023</td></tr>
+    <tr><td>2</td><td>“KICK BACK”</td><td>:contentReference[oaicite:2]{index=2}</td><td>2022</td></tr>
+    <!-- Remplir jusqu’au rang 100 -->
+  </table>
+</body>
+</html>
+<a href="top100-openings.html" style="color:white; text‑decoration:none;">Top 100 Openings</a>
+<iframe src="https://docs.google.com/forms/d/e/TON_ID/viewform?embedded=true" width="700" height="900" frameborder="0" marginheight="0" marginwidth="0">Chargement…</iframe>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Vote du Mois – AnimeGarden</title>
+</head>
+<body>
+  <h1 style="text-align:center;">🎖️ Vote du Mois</h1>
+  <p style="text-align:center;">Votez pour votre animé, opening et personnage préféré du mois !</p>
+
+  <!-- ICI tu colles le iframe -->
+  <iframe src="https://docs.google.com/forms/d/e/TON_ID/viewform?embedded=true" width="100%" height="900" frameborder="0" marginheight="0" marginwidth="0">Chargement…</iframe>
+
+</body>
+</html>
+<a href="votes.html">Vote du Mois</a>
+// Exemple avec Jikan API
+const params = new URLSearchParams(window.location.search);
+const animeId = params.get('id');
+
+if (animeId) {
+  fetch(`https://api.jikan.moe/v4/anime/${animeId}`)
+    .then(res => res.json())
+    .then(data => {
+      const anime = data.data;
+      // afficher titre, image, synopsis, épisodes, etc.
+      document.getElementById('title').innerText = anime.title;
+      document.getElementById('cover').src = anime.images.webp.large_image_url;
+      document.getElementById('synopsis').innerText = anime.synopsis;
+      document.getElementById('episodes').innerText = `Épisodes : ${anime.episodes}`;
+      // etc.
+    })
+    .catch(err => console.error(err));
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Détails Animé – AnimeGarden</title>
+</head>
+<body>
+  <nav><!-- menu ici --></nav>
+
+  <h1 id="title">Chargement…</h1>
+  <img id="cover" alt="Couverture animé" style="width:300px;">
+  <p id="synopsis"></p>
+  <p id="episodes"></p>
+
+  <footer><!-- footer ici --></footer>
+
+  <script><!-- code JS ici --></script>
+</body>
+</html>
+card.innerHTML = `
+  <a href="anime-info.html?id=${anime.mal_id}">
+    <img src="${anime.images.webp.large_image_url}" alt="${anime.title}" />
+    <h3>${anime.title}</h3>
+    <p>${anime.synopsis ? anime.synopsis.substring(0,100) + '…' : ''}</p>
+  </a>
+`;
