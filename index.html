@@ -607,3 +607,2431 @@ card.innerHTML = `
     <p>${anime.synopsis ? anime.synopsis.substring(0,100) + '…' : ''}</p>
   </a>
 `;
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Détails Animé – AnimeGarden</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0;
+    }
+    #cover {
+      display: block;
+      margin: 20px auto;
+      max-width: 300px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .details {
+      text-align: center;
+      margin: 10px 0 30px;
+    }
+    .details span {
+      display: inline-block;
+      margin: 0 10px;
+      font-weight: bold;
+      color: #0077cc;
+    }
+    /* Onglets */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    .tab {
+      padding: 10px 20px;
+      border: 1px solid #0077cc;
+      border-bottom: none;
+      background: #e0f0ff;
+      margin: 0 5px;
+      border-radius: 8px 8px 0 0;
+      font-weight: bold;
+      color: #0077cc;
+    }
+    .tab.active {
+      background: white;
+      color: #005a99;
+      border-bottom: 1px solid white;
+    }
+    .tab-content {
+      border: 1px solid #0077cc;
+      background: white;
+      padding: 15px;
+      border-radius: 0 8px 8px 8px;
+      min-height: 150px;
+    }
+    /* Personnages */
+    .characters-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .character-card {
+      width: 120px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .character-card img {
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    /* Bouton favoris */
+    #fav-btn {
+      display: block;
+      margin: 25px auto 50px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      transition: background 0.3s ease;
+    }
+    #fav-btn:hover {
+      background: #005a99;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Chargement…</h1>
+  <img id="cover" alt="Couverture animé" />
+  <div class="details">
+    <span id="type">Type : …</span>
+    <span id="studio">Studio : …</span>
+    <span id="aired">Date de sortie : …</span>
+    <span id="score">Note : …</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="synopsis">📖 Synopsis</div>
+    <div class="tab" data-tab="characters">🎭 Personnages</div>
+    <div class="tab" data-tab="trailer">🎥 Trailer</div>
+  </div>
+
+  <div class="tab-content" id="synopsis">
+    <p id="synopsis-text">Chargement du synopsis…</p>
+  </div>
+  <div class="tab-content" id="characters" style="display:none;">
+    <div class="characters-list" id="characters-list">
+      Chargement des personnages…
+    </div>
+  </div>
+  <div class="tab-content" id="trailer" style="display:none;">
+    <div id="trailer-container" style="text-align:center;">
+      Chargement de la bande-annonce…
+    </div>
+  </div>
+
+  <button id="fav-btn">⭐ Ajouter aux favoris</button>
+
+  <script>
+    // Gestion des onglets
+    const tabs = document.querySelectorAll('.tab');
+    const contents = {
+      synopsis: document.getElementById('synopsis'),
+      characters: document.getElementById('characters'),
+      trailer: document.getElementById('trailer')
+    };
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const tabName = tab.getAttribute('data-tab');
+        for (const key in contents) {
+          contents[key].style.display = (key === tabName) ? 'block' : 'none';
+        }
+      });
+    });
+
+    // Récupérer l'ID animé dans l'URL
+    const params = new URLSearchParams(window.location.search);
+    const animeId = params.get('id');
+
+    if (!animeId) {
+      alert("ID animé manquant dans l'URL !");
+    } else {
+      fetch(`https://api.jikan.moe/v4/anime/${animeId}`)
+        .then(res => res.json())
+        .then(data => {
+          const anime = data.data;
+          document.getElementById('title').innerText = anime.title;
+          document.getElementById('cover').src = anime.images.webp.large_image_url;
+          document.getElementById('synopsis-text').innerText = anime.synopsis || "Synopsis non disponible.";
+
+          document.getElementById('type').innerText = `Type : ${anime.type || "Inconnu"}`;
+          document.getElementById('score').innerText = `Note : ${anime.score || "N/A"}`;
+          document.getElementById('aired').innerText = `Date de sortie : ${anime.aired.string || "Inconnue"}`;
+          
+          // Studio : on prend le premier studio
+          if (anime.studios && anime.studios.length > 0) {
+            document.getElementById('studio').innerText = `Studio : ${anime.studios[0].name}`;
+          } else {
+            document.getElementById('studio').innerText = `Studio : Inconnu`;
+          }
+
+          // Récupérer personnages
+          fetch(`https://api.jikan.moe/v4/anime/${animeId}/characters`)
+            .then(res => res.json())
+            .then(charsData => {
+              const charsList = document.getElementById('characters-list');
+              charsList.innerHTML = '';
+              charsData.data.slice(0, 10).forEach(char => {
+                const card = document.createElement('div');
+                card.className = 'character-card';
+                card.innerHTML = `
+                  <img src="${char.character.images.jpg.image_url}" alt="${char.character.name}" />
+                  <div>${char.character.name}</div>
+                  <small>(${char.role})</small>
+                `;
+                charsList.appendChild(card);
+              });
+              if (charsData.data.length === 0) {
+                charsList.innerText = "Aucun personnage disponible.";
+              }
+            }).catch(() => {
+              document.getElementById('characters-list').innerText = "Erreur lors du chargement des personnages.";
+            });
+
+          // Bande annonce YouTube (si disponible)
+          if (anime.trailer && anime.trailer.youtube_id) {
+            document.getElementById('trailer-container').innerHTML = `
+              <iframe width="560" height="315"
+                src="https://www.youtube.com/embed/${anime.trailer.youtube_id}"
+                title="Trailer de ${anime.title}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+              </iframe>`;
+          } else {
+            document.getElementById('trailer-container').innerText = "Bande-annonce non disponible.";
+          }
+        })
+        .catch(() => {
+          alert("Erreur lors de la récupération des données de l'animé.");
+        });
+    }
+
+    // Gestion bouton favoris simple (stockage local)
+    const favBtn = document.getElementById('fav-btn');
+    const favKey = 'animegarden_favorites';
+
+    // Charge les favoris depuis le localStorage
+    function getFavorites() {
+      const favs = localStorage.getItem(favKey);
+      return favs ? JSON.parse(favs) : [];
+    }
+
+    // Sauvegarde les favoris dans le localStorage
+    function setFavorites(favs) {
+      localStorage.setItem(favKey, JSON.stringify(favs));
+    }
+
+    function updateFavBtn() {
+      const favs = getFavorites();
+      if (favs.includes(animeId)) {
+        favBtn.innerText = "⭐ Retirer des favoris";
+      } else {
+        favBtn.innerText = "⭐ Ajouter aux favoris";
+      }
+    }
+
+    favBtn.addEventListener('click', () => {
+      let favs = getFavorites();
+      if (favs.includes(animeId)) {
+        favs = favs.filter(id => id !== animeId);
+      } else {
+        favs.push(animeId);
+      }
+      setFavorites(favs);
+      updateFavBtn();
+    });
+
+    updateFavBtn();
+
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tous les animés – AnimeGarden</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    nav {
+      background: #00b894;
+      padding: 10px 0;
+      text-align: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .filters {
+      max-width: 1000px;
+      margin: auto 0 20px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .filters select, .filters input {
+      padding: 8px;
+      font-size: 14px;
+    }
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      width: 180px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+      text-align: center;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .card img {
+      width: 100%;
+      height: 250px;
+      object‑fit: cover;
+    }
+    .card h3 {
+      margin: 10px 0 5px;
+      font-size: 16px;
+    }
+    .card p {
+      margin: 0 10px 10px;
+      font-size: 13px;
+      color: #555;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #2d3436;
+      color: white;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Accueil</a>
+  <a href="all‑anime.html">Tous les animés</a>
+  <a href="top10.html">Top 10</a>
+  <a href="recherche.html">Recherche</a>
+</nav>
+
+<h1>📚 Tous les animés</h1>
+
+<div class="filters">
+  <input type="text" id="searchInput" placeholder="Rechercher par titre…" />
+  <select id="genreFilter">
+    <option value="">Tous les genres</option>
+    <option value="Action">Action</option>
+    <option value="Adventure">Aventure</option>
+    <option value="Comedy">Comédie</option>
+    <!-- tu peux ajouter d'autres genres ici -->
+  </select>
+  <select id="statusFilter">
+    <option value="">Tous statuts</option>
+    <option value="Finished">Terminé</option>
+    <option value="Currently Airing">En cours</option>
+  </select>
+</div>
+
+<div class="cards" id="animeContainer">
+  <!-- Les cartes des animés s’afficheront ici -->
+</div>
+
+<footer>
+  <p>© 2025 AnimeGarden – Tous droits réservés.</p>
+</footer>
+
+<script>
+  const container = document.getElementById('animeContainer');
+  const searchInput = document.getElementById('searchInput');
+  const genreFilter = document.getElementById('genreFilter');
+  const statusFilter = document.getElementById('statusFilter');
+
+  let allAnimes = [];
+
+  async function fetchAnimes(page = 1) {
+    const url = `https://api.jikan.moe/v4/anime?page=${page}&limit=20`;
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.data;
+    } catch(err) {
+      console.error(err);
+      return [];
+    }
+  }
+
+  async function loadAnimes() {
+    // Pour commencer on récupère par exemple 2 pages = ~40 animés
+    const page1 = await fetchAnimes(1);
+    const page2 = await fetchAnimes(2);
+    allAnimes = [...page1, ...page2];
+    displayAnimes(allAnimes);
+  }
+
+  function displayAnimes(list) {
+    container.innerHTML = '';
+    list.forEach(anime => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${anime.images.webp.large_image_url}" alt="${anime.title}" />
+        <h3>${anime.title}</h3>
+        <p>${anime.synopsis ? anime.synopsis.substring(0,60)+'…' : ''}</p>
+      `;
+      card.onclick = () => {
+        window.location.href = `anime-info.html?id=${anime.mal_id}`;
+      };
+      container.appendChild(card);
+    });
+  }
+
+  function applyFilters() {
+    const query = searchInput.value.toLowerCase();
+    const genre = genreFilter.value;
+    const status = statusFilter.value;
+    const filtered = allAnimes.filter(anime => {
+      const titleMatch = anime.title.toLowerCase().includes(query);
+      const genreMatch = genre ? anime.genres.some(g => g.name === genre) : true;
+      const statusMatch = status ? anime.status === status : true;
+      return titleMatch && genreMatch && statusMatch;
+    });
+    displayAnimes(filtered);
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  genreFilter.addEventListener('change', applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+
+  loadAnimes();
+</script>
+
+</body>
+</html>
+import React, { useState, useMemo } from "react";
+
+// Default export React component — Drop this file in a React app (Tailwind CSS assumed)
+export default function AnimePagination() {
+  const ANIME_LIST = [
+    "One Piece",
+    "Naruto",
+    "Naruto: Shippuden",
+    "Bleach",
+    "Dragon Ball Z",
+    "Dragon Ball Super",
+    "Attack on Titan",
+    "Fullmetal Alchemist: Brotherhood",
+    "Death Note",
+    "Demon Slayer: Kimetsu no Yaiba",
+    "My Hero Academia",
+    "Hunter x Hunter",
+    "Cowboy Bebop",
+    "Steins;Gate",
+    "Code Geass: Lelouch of the Rebellion",
+    "Neon Genesis Evangelion",
+    "JoJo's Bizarre Adventure",
+    "Tokyo Ghoul",
+    "Mob Psycho 100",
+    "Gintama",
+    "Psycho-Pass",
+    "Re:Zero − Starting Life in Another World",
+    "Kaguya-sama: Love is War",
+    "The Promised Neverland",
+    "Black Clover",
+    "Haikyuu!!",
+    "K-On!",
+    "Your Lie in April",
+    "Violet Evergarden",
+    "Made in Abyss",
+    "Monster",
+    "Soul Eater",
+    "Akame ga Kill!",
+    "Clannad",
+    "Toradora!",
+    "Spice and Wolf",
+    "The Seven Deadly Sins",
+    "Berserk",
+    "Eureka Seven",
+    "Fate/Zero",
+    "Fate/stay night: Unlimited Blade Works",
+    "Hellsing Ultimate",
+    "Lucky Star",
+    "Angel Beats!",
+    "The Melancholy of Haruhi Suzumiya",
+    "Yuri!!! on Ice",
+    "Anohana: The Flower We Saw That Day",
+    "Nichijou",
+    "Mushishi",
+    "Black Lagoon",
+    "Kino's Journey",
+    "No Game No Life",
+    "Sword Art Online",
+    "Yona of the Dawn",
+    "BACCANO!",
+    "Serial Experiments Lain",
+    "Samurai Champloo",
+    "FLCL",
+    "Ping Pong the Animation",
+    "Parasyte -the maxim-",
+    "The Devil is a Part-Timer!",
+    "Golden Kamuy",
+    "Monster Musume",
+    "Oshi no Ko",
+    "Made in Abyss: Dawn of the Deep Soul",
+    "Houseki no Kuni (Land of the Lustrous)",
+    "March Comes in Like a Lion",
+    "Barakamon",
+    "Planetes",
+    "Shiki",
+    "K-On!!",
+    "Slam Dunk",
+    "Dance Dance Danseur",
+    "The Rising of the Shield Hero",
+    "Dororo",
+    "Great Pretender",
+    "Vivy -Fluorite Eye's Song-",
+    "Dr. Stone",
+    "The Ancient Magus' Bride",
+    "Wolf's Rain",
+    "Trigun",
+    "Nana",
+    "A Silent Voice (Koe no Katachi)",
+    "5 Centimeters Per Second",
+    "Howl's Moving Castle (movie)",
+    "Princess Mononoke (movie)",
+    "Spirited Away (movie)",
+    "Akira (movie)",
+    "Perfect Blue",
+    "The Tatami Galaxy",
+    "Dennou Coil",
+    "Kino no Tabi: The Beautiful World",
+    "Yokohama Kaidashi Kikou",
+    "Space Brothers",
+    "Beastars",
+    "Shoujo☆Kageki Revue Starlight",
+    "House of Five Leaves",
+    "The Irregular at Magic High School"
+  ];
+
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState("");
+
+  // Filtered list (search)
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ANIME_LIST;
+    return ANIME_LIST.filter((t) => t.toLowerCase().includes(q));
+  }, [query]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  // Clamp current page if itemsPerPage or filter changes
+  if (currentPage > totalPages) setCurrentPage(totalPages);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const visible = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  const goToPage = (p) => setCurrentPage(Math.max(1, Math.min(totalPages, p)));
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold mb-2">Liste — 100 animés</h1>
+        <p className="text-sm text-muted-foreground">Affiche et navigue la liste. Recherche et change le nombre par page.</p>
+      </header>
+
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher un animé..."
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setCurrentPage(1);} }
+          className="flex-1 input input-bordered w-full"
+        />
+
+        <label className="flex items-center gap-2">
+          <span className="text-sm">Par page</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            className="select select-bordered ml-2"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border">
+        <ul className="divide-y">
+          {visible.map((title, i) => (
+            <li key={startIndex + i} className="p-4 flex items-center justify-between">
+              <div>
+                <div className="font-medium">{title}</div>
+                <div className="text-xs text-gray-500">#{startIndex + i + 1}</div>
+              </div>
+              <div className="text-sm text-gray-600">Série / Film</div>
+            </li>
+          ))}
+
+          {visible.length === 0 && (
+            <li className="p-6 text-center text-gray-500">Aucun résultat pour "{query}"</li>
+          )}
+        </ul>
+      </div>
+
+      {/* Pagination controls */}
+      <nav className="flex items-center justify-between mt-4">
+        <div className="text-sm text-gray-600">{totalItems} résultat(s)</div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="btn btn-sm"
+          >
+            Préc
+          </button>
+
+          {/* Page numbers (simple) */}
+          <div className="hidden sm:flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => goToPage(p)}
+                className={`btn btn-sm ${p === currentPage ? "btn-primary" : ""}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="btn btn-sm"
+          >
+            Suiv
+          </button>
+        </div>
+      </nav>
+
+      <footer className="mt-3 text-xs text-gray-500">Affichage page {currentPage} / {totalPages}</footer>
+    </div>
+  );
+}
+import React, { useState, useMemo, useEffect } from "react";
+
+// AnimeVerse - Cyberpunk themed React page (Tailwind CSS required)
+// Drop this file into your React project (e.g. src/App.jsx) and ensure Tailwind is configured.
+
+const ANIME_LIST = [
+  "One Piece",
+  "Naruto",
+  "Naruto: Shippuden",
+  "Bleach",
+  "Dragon Ball Z",
+  "Dragon Ball Super",
+  "Attack on Titan",
+  "Fullmetal Alchemist: Brotherhood",
+  "Death Note",
+  "Demon Slayer: Kimetsu no Yaiba",
+  "My Hero Academia",
+  "Hunter x Hunter",
+  "Cowboy Bebop",
+  "Steins;Gate",
+  "Code Geass: Lelouch of the Rebellion",
+  "Neon Genesis Evangelion",
+  "JoJo's Bizarre Adventure",
+  "Tokyo Ghoul",
+  "Mob Psycho 100",
+  "Gintama",
+  "Psycho-Pass",
+  "Re:Zero − Starting Life in Another World",
+  "Kaguya-sama: Love is War",
+  "The Promised Neverland",
+  "Black Clover",
+  "Haikyuu!!",
+  "K-On!",
+  "Your Lie in April",
+  "Violet Evergarden",
+  "Made in Abyss",
+  "Monster",
+  "Soul Eater",
+  "Akame ga Kill!",
+  "Clannad",
+  "Toradora!",
+  "Spice and Wolf",
+  "The Seven Deadly Sins",
+  "Berserk",
+  "Eureka Seven",
+  "Fate/Zero",
+  "Fate/stay night: Unlimited Blade Works",
+  "Hellsing Ultimate",
+  "Lucky Star",
+  "Angel Beats!",
+  "The Melancholy of Haruhi Suzumiya",
+  "Yuri!!! on Ice",
+  "Anohana: The Flower We Saw That Day",
+  "Nichijou",
+  "Mushishi",
+  "Black Lagoon",
+  "Kino's Journey",
+  "No Game No Life",
+  "Sword Art Online",
+  "Yona of the Dawn",
+  "BACCANO!",
+  "Serial Experiments Lain",
+  "Samurai Champloo",
+  "FLCL",
+  "Ping Pong the Animation",
+  "Parasyte -the maxim-",
+  "The Devil is a Part-Timer!",
+  "Golden Kamuy",
+  "Monster Musume",
+  "Oshi no Ko",
+  "Made in Abyss: Dawn of the Deep Soul",
+  "Houseki no Kuni (Land of the Lustrous)",
+  "March Comes in Like a Lion",
+  "Barakamon",
+  "Planetes",
+  "Shiki",
+  "K-On!!",
+  "Slam Dunk",
+  "Dance Dance Danseur",
+  "The Rising of the Shield Hero",
+  "Dororo",
+  "Great Pretender",
+  "Vivy -Fluorite Eye's Song-",
+  "Dr. Stone",
+  "The Ancient Magus' Bride",
+  "Wolf's Rain",
+  "Trigun",
+  "Nana",
+  "A Silent Voice (Koe no Katachi)",
+  "5 Centimeters Per Second",
+  "Howl's Moving Castle (movie)",
+  "Princess Mononoke (movie)",
+  "Spirited Away (movie)",
+  "Akira (movie)",
+  "Perfect Blue",
+  "The Tatami Galaxy",
+  "Dennou Coil",
+  "Kino no Tabi: The Beautiful World",
+  "Yokohama Kaidashi Kikou",
+  "Space Brothers",
+  "Beastars",
+  "Shoujo☆Kageki Revue Starlight",
+  "House of Five Leaves",
+  "The Irregular at Magic High School"
+];
+
+// ----------------- Helper Components -----------------
+
+function Logo({ size = 40 }) {
+  // A neon cyberpunk text + emblem logo (SVG)
+  return (
+    <div className="flex items-center gap-3"> 
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="drop-shadow-[0_4px_8px_rgba(12,76,110,0.45)]"
+      >
+        <rect x="2" y="2" width="20" height="20" rx="4" stroke="url(#g)" strokeWidth="1.5" />
+        <path d="M6 16V8h12v8" stroke="url(#g)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#00fff0" />
+            <stop offset="50%" stopColor="#7A00FF" />
+            <stop offset="100%" stopColor="#FF4DA6" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div className="leading-4">
+        <div className="text-white text-lg font-extrabold tracking-wider neon-text">ANIMEVERSE</div>
+        <div className="text-[10px] uppercase text-cyan-300/60">Cyberpunk Catalogue</div>
+      </div>
+    </div>
+  );
+}
+
+function Nav() {
+  return (
+    <nav className="flex items-center gap-4">
+      <a className="nav-link">Accueil</a>
+      <a className="nav-link">Catalogue</a>
+      <a className="nav-link">Actualités</a>
+      <a className="nav-link">Contact</a>
+    </nav>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-12 py-6 text-center text-sm text-cyan-200/60">
+      © {new Date().getFullYear()} AnimeVerse — Design cyberpunk. Tous droits réservés.
+    </footer>
+  );
+}
+
+// ----------------- Main List Component -----------------
+
+function AnimeCard({ index, title }) {
+  return (
+    <div className="group relative overflow-hidden rounded-xl border border-[#1f2937] bg-gradient-to-br from-[#071126] to-[#0b0711] p-4 shadow-[0_6px_24px_rgba(0,0,0,0.6)] transition transform hover:-translate-y-1">
+      {/* neon strip */}
+      <div className="absolute -left-20 -top-12 w-56 h-56 rounded-full opacity-20 blur-3xl bg-gradient-to-r from-[#00fff0] to-[#ff4da6] group-hover:opacity-40 transition-all" />
+
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 flex items-center justify-center rounded-md bg-gradient-to-br from-[#061021] to-[#0b0612] border border-[#233447]">
+          <div className="text-xs font-bold text-cyan-200">#{index}</div>
+        </div>
+
+        <div className="flex-1">
+          <div className="font-semibold text-white neon-text-sm">{title}</div>
+          <div className="text-xs text-cyan-300/60 mt-1">Série • Anime</div>
+        </div>
+
+        <button className="btn-sm px-3 py-1 rounded-md border border-[#233447] hover:scale-105 transition bg-gradient-to-r from-[#002a36]/30 to-[#4a003f]/10">Voir</button>
+      </div>
+    </div>
+  );
+}
+
+function Pagination({ currentPage, totalPages, onChange }) {
+  // Show a compact page list around current page
+  const visiblePages = [];
+  const delta = 2;
+  const left = Math.max(1, currentPage - delta);
+  const right = Math.min(totalPages, currentPage + delta);
+  if (left > 1) visiblePages.push(1);
+  if (left > 2) visiblePages.push("...");
+  for (let p = left; p <= right; p++) visiblePages.push(p);
+  if (right < totalPages - 1) visiblePages.push("...");
+  if (right < totalPages) visiblePages.push(totalPages);
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => onChange(1)}
+        className="px-3 py-1 rounded-md border border-transparent hover:border-[#2dd4bf] transition text-sm"
+        title="Première page"
+      >
+        «
+      </button>
+
+      <button
+        onClick={() => onChange(Math.max(1, currentPage - 1))}
+        className="px-3 py-1 rounded-md border border-transparent hover:border-[#7c3aed] transition text-sm"
+        title="Page précédente"
+      >
+        ‹
+      </button>
+
+      {visiblePages.map((p, i) => (
+        <React.Fragment key={i}>
+          {p === "..." ? (
+            <span className="px-2 text-sm text-cyan-300/50">...</span>
+          ) : (
+            <button
+              onClick={() => onChange(p)}
+              className={`px-3 py-1 rounded-md text-sm transition ${p === currentPage ? "bg-gradient-to-r from-[#00fff0]/20 via-[#7A00FF]/20 to-[#FF4DA6]/20 border border-[#2dd4bf]" : "hover:border-[#2dd4bf] border border-transparent"}`}
+            >
+              {p}
+            </button>
+          )}
+        </React.Fragment>
+      ))}
+
+      <button
+        onClick={() => onChange(Math.min(totalPages, currentPage + 1))}
+        className="px-3 py-1 rounded-md border border-transparent hover:border-[#fb7185] transition text-sm"
+        title="Page suivante"
+      >
+        ›
+      </button>
+
+      <button
+        onClick={() => onChange(totalPages)}
+        className="px-3 py-1 rounded-md border border-transparent hover:border-[#60a5fa] transition text-sm"
+        title="Dernière page"
+      >
+        »
+      </button>
+    </div>
+  );
+}
+
+function AnimeList({ items }) {
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((t) => t.toLowerCase().includes(q));
+  }, [query, items]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const visible = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  return (
+    <section>
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-4">
+        <div className="flex items-center gap-3 w-full sm:w-3/4">
+          <div className="relative flex-1">
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Rechercher un animé..."
+              className="w-full rounded-md border border-[#213041] bg-[#061021] px-4 py-2 text-sm text-cyan-100 placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-[#00fff0]/30"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-300/60 text-sm">⌕</div>
+          </div>
+
+          <select
+            value={itemsPerPage}
+            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            className="rounded-md border border-[#213041] bg-[#061021] px-3 py-2 text-sm text-cyan-100"
+          >
+            <option value={5}>5 / page</option>
+            <option value={10}>10 / page</option>
+            <option value={20}>20 / page</option>
+          </select>
+        </div>
+
+        <div className="text-sm text-cyan-200/60">{totalItems} résultat(s)</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {visible.map((title, i) => (
+          <AnimeCard key={startIndex + i} index={startIndex + i + 1} title={title} />
+        ))}
+
+        {visible.length === 0 && (
+          <div className="col-span-full p-8 text-center text-cyan-300/60">Aucun résultat pour "{query}"</div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm text-cyan-200/60">Page {currentPage} / {totalPages}</div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} onChange={(p) => setCurrentPage(p)} />
+      </div>
+    </section>
+  );
+}
+
+// ----------------- App (page) -----------------
+
+export default function App() {
+  return (
+    <div className="min-h-screen bg-[#03040a] text-cyan-50 font-sans">
+      {/* Background neon grid */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#020617] via-[#05041a] to-[#0b0210]" />
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#001121] via-transparent to-transparent" />
+
+          {/* animated lines */}
+          <div className="absolute inset-0">
+            <svg className="w-full h-full" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lg" x1="0" x2="1">
+                  <stop offset="0%" stopColor="#002a36" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#3b0066" stopOpacity="0.25" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#lg)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Page container */}
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <header className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Logo />
+            </div>
+
+            <div className="hidden md:block">
+              <Nav />
+            </div>
+          </header>
+
+          <main className="mt-8">
+            <div className="rounded-2xl border border-[#111827] bg-gradient-to-b from-[#04111b]/60 to-[#03040a]/40 p-6 backdrop-blur-sm">
+              <h2 className="text-2xl font-bold neon-text mb-1">Catalogue — Top 100 animés</h2>
+              <p className="text-sm text-cyan-200/60 mb-6">Parcourir, rechercher et découvrir. Thème cyberpunk sombre, interface minimale et rapide.</p>
+
+              <AnimeList items={ANIME_LIST} />
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+      </div>
+
+      {/* Styles: neon text/glow + small utilities */}
+      <style>{`
+        .neon-text {
+          text-shadow: 0 0 6px rgba(0,255,240,0.08), 0 0 18px rgba(122,0,255,0.06);
+        }
+        .neon-text-sm {
+          text-shadow: 0 0 8px rgba(0,255,240,0.06), 0 0 20px rgba(255,77,166,0.04);
+        }
+        .nav-link{
+          color: rgba(149,243,255,0.9);
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all .18s ease-in-out;
+        }
+        .nav-link:hover{
+          transform: translateY(-2px);
+          text-shadow: 0 0 8px rgba(0,255,240,0.14);
+        }
+
+        /* small responsive tweaks */
+        @media (max-width: 640px){
+          .nav-link{ display:none }
+        }
+      `}</style>
+    </div>
+  );
+}
+import React, { useState, useMemo, useEffect } from "react";
+
+// AnimeVerse - Cyberpunk themed React page (Tailwind CSS required)
+// Interior/background set to pure black as requested.
+
+const ANIME_LIST = [
+  "One Piece",
+  "Naruto",
+  "Naruto: Shippuden",
+  "Bleach",
+  "Dragon Ball Z",
+  "Dragon Ball Super",
+  "Attack on Titan",
+  "Fullmetal Alchemist: Brotherhood",
+  "Death Note",
+  "Demon Slayer: Kimetsu no Yaiba",
+  "My Hero Academia",
+  "Hunter x Hunter",
+  "Cowboy Bebop",
+  "Steins;Gate",
+  "Code Geass: Lelouch of the Rebellion",
+  "Neon Genesis Evangelion",
+  "JoJo's Bizarre Adventure",
+  "Tokyo Ghoul",
+  "Mob Psycho 100",
+  "Gintama",
+  "Psycho-Pass",
+  "Re:Zero − Starting Life in Another World",
+  "Kaguya-sama: Love is War",
+  "The Promised Neverland",
+  "Black Clover",
+  "Haikyuu!!",
+  "K-On!",
+  "Your Lie in April",
+  "Violet Evergarden",
+  "Made in Abyss",
+  "Monster",
+  "Soul Eater",
+  "Akame ga Kill!",
+  "Clannad",
+  "Toradora!",
+  "Spice and Wolf",
+  "The Seven Deadly Sins",
+  "Berserk",
+  "Eureka Seven",
+  "Fate/Zero",
+  "Fate/stay night: Unlimited Blade Works",
+  "Hellsing Ultimate",
+  "Lucky Star",
+  "Angel Beats!",
+  "The Melancholy of Haruhi Suzumiya",
+  "Yuri!!! on Ice",
+  "Anohana: The Flower We Saw That Day",
+  "Nichijou",
+  "Mushishi",
+  "Black Lagoon",
+  "Kino's Journey",
+  "No Game No Life",
+  "Sword Art Online",
+  "Yona of the Dawn",
+  "BACCANO!",
+  "Serial Experiments Lain",
+  "Samurai Champloo",
+  "FLCL",
+  "Ping Pong the Animation",
+  "Parasyte -the maxim-",
+  "The Devil is a Part-Timer!",
+  "Golden Kamuy",
+  "Monster Musume",
+  "Oshi no Ko",
+  "Made in Abyss: Dawn of the Deep Soul",
+  "Houseki no Kuni (Land of the Lustrous)",
+  "March Comes in Like a Lion",
+  "Barakamon",
+  "Planetes",
+  "Shiki",
+  "K-On!!",
+  "Slam Dunk",
+  "Dance Dance Danseur",
+  "The Rising of the Shield Hero",
+  "Dororo",
+  "Great Pretender",
+  "Vivy -Fluorite Eye's Song-",
+  "Dr. Stone",
+  "The Ancient Magus' Bride",
+  "Wolf's Rain",
+  "Trigun",
+  "Nana",
+  "A Silent Voice (Koe no Katachi)",
+  "5 Centimeters Per Second",
+  "Howl's Moving Castle (movie)",
+  "Princess Mononoke (movie)",
+  "Spirited Away (movie)",
+  "Akira (movie)",
+  "Perfect Blue",
+  "The Tatami Galaxy",
+  "Dennou Coil",
+  "Kino no Tabi: The Beautiful World",
+  "Yokohama Kaidashi Kikou",
+  "Space Brothers",
+  "Beastars",
+  "Shoujo☆Kageki Revue Starlight",
+  "House of Five Leaves",
+  "The Irregular at Magic High School"
+];
+
+// ----------------- Helper Components -----------------
+
+function Logo({ size = 44 }) {
+  // A neon cyberpunk streaming-style logo (SVG) — visible, bold, simple like Netflix/Crunchyroll
+  return (
+    <div className="flex items-center gap-3">
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_6px_18px_rgba(0,255,240,0.12)]">
+        <rect x="6" y="6" width="52" height="52" rx="8" fill="#000" stroke="url(#g2)" strokeWidth="2" />
+        <path d="M18 44V20h28v24H18z" fill="url(#g2)" opacity="0.06" />
+        <path d="M20 28h24v8H20z" fill="url(#g2)" />
+        <defs>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#00fff0" />
+            <stop offset="50%" stopColor="#7A00FF" />
+            <stop offset="100%" stopColor="#FF4DA6" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div className="leading-4">
+        <div className="text-white text-xl font-extrabold tracking-wider" style={{letterSpacing:1}}>ANIMEVERSE</div>
+        <div className="text-[11px] uppercase text-cyan-300/60">Streaming • Catalogue</div>
+      </div>
+    </div>
+  );
+}
+
+function Nav() {
+  return (
+    <nav className="flex items-center gap-4">
+      <a className="nav-link">Accueil</a>
+      <a className="nav-link">Catalogue</a>
+      <a className="nav-link">Séries</a>
+      <a className="nav-link">Films</a>
+      <a className="nav-link">News</a>
+    </nav>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-12 py-6 text-center text-sm text-cyan-200/60">
+      © {new Date().getFullYear()} AnimeVerse — Design cyberpunk. Tous droits réservés.
+    </footer>
+  );
+}
+
+// ----------------- Main List Component -----------------
+
+function AnimeCard({ index, title }) {
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-[#111] bg-black p-4 shadow-[0_8px_30px_rgba(0,0,0,0.7)] transition transform hover:-translate-y-1 hover:shadow-[0_10px_40px_rgba(122,0,255,0.12)]">
+      <div className="absolute -left-20 -top-12 w-44 h-44 rounded-full opacity-10 blur-2xl bg-gradient-to-r from-[#00fff0] to-[#ff4da6] group-hover:opacity-30 transition-all" />
+
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 flex items-center justify-center rounded-md bg-gradient-to-br from-[#050505] to-[#0b0b0b] border border-[#181818]">
+          <div className="text-xs font-bold text-cyan-200">#{index}</div>
+        </div>
+
+        <div className="flex-1">
+          <div className="font-semibold text-white">{title}</div>
+          <div className="text-xs text-cyan-300/60 mt-1">Série • Anime</div>
+        </div>
+
+        <button className="btn-sm px-3 py-1 rounded-md border border-[#222] hover:scale-105 transition bg-gradient-to-r from-[#001319]/20 to-[#420022]/10 text-cyan-100">Voir</button>
+      </div>
+    </div>
+  );
+}
+
+function Pagination({ currentPage, totalPages, onChange }) {
+  const visiblePages = [];
+  const delta = 2;
+  const left = Math.max(1, currentPage - delta);
+  const right = Math.min(totalPages, currentPage + delta);
+  if (left > 1) visiblePages.push(1);
+  if (left > 2) visiblePages.push("...");
+  for (let p = left; p <= right; p++) visiblePages.push(p);
+  if (right < totalPages - 1) visiblePages.push("...");
+  if (right < totalPages) visiblePages.push(totalPages);
+
+  return (
+    <div className="flex items-center gap-2">
+      <button onClick={() => onChange(1)} className="px-3 py-1 rounded-md border border-transparent hover:border-[#2dd4bf] transition text-sm">«</button>
+      <button onClick={() => onChange(Math.max(1, currentPage - 1))} className="px-3 py-1 rounded-md border border-transparent hover:border-[#7c3aed] transition text-sm">‹</button>
+
+      {visiblePages.map((p, i) => (
+        <React.Fragment key={i}>
+          {p === "..." ? (
+            <span className="px-2 text-sm text-cyan-300/50">...</span>
+          ) : (
+            <button onClick={() => onChange(p)} className={`px-3 py-1 rounded-md text-sm transition ${p === currentPage ? "bg-gradient-to-r from-[#00fff0]/12 via-[#7A00FF]/12 to-[#FF4DA6]/12 border border-[#2dd4bf]" : "hover:border-[#2dd4bf] border border-transparent"}`}>
+              {p}
+            </button>
+          )}
+        </React.Fragment>
+      ))}
+
+      <button onClick={() => onChange(Math.min(totalPages, currentPage + 1))} className="px-3 py-1 rounded-md border border-transparent hover:border-[#fb7185] transition text-sm">›</button>
+      <button onClick={() => onChange(totalPages)} className="px-3 py-1 rounded-md border border-transparent hover:border-[#60a5fa] transition text-sm">»</button>
+    </div>
+  );
+}
+
+function GenreRow({ title, items }) {
+  return (
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <button className="text-sm text-cyan-300/70 hover:underline">Voir tout</button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        {items.slice(0, 10).map((t, i) => (
+          <div key={i} className="rounded-md overflow-hidden bg-black border border-[#111] p-3 hover:scale-105 transition shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+            <div className="h-28 bg-gradient-to-br from-[#050505] to-[#0b0b0b] rounded-md mb-2 flex items-end p-2">
+              <div className="text-xs text-cyan-200 font-semibold">{t}</div>
+            </div>
+            <div className="text-xs text-cyan-300/70">Série</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AnimeList({ items }) {
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((t) => t.toLowerCase().includes(q));
+  }, [query, items]);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const visible = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  return (
+    <section>
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-4">
+        <div className="flex items-center gap-3 w-full sm:w-3/4">
+          <div className="relative flex-1">
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Rechercher un animé, genre, mot-clé..."
+              className="w-full rounded-md border border-[#111] bg-black px-4 py-3 text-sm text-cyan-100 placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-[#00fff0]/25"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-300/60 text-sm">⌕</div>
+          </div>
+
+          <select
+            value={itemsPerPage}
+            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            className="rounded-md border border-[#111] bg-black px-3 py-2 text-sm text-cyan-100"
+          >
+            <option value={5}>5 / page</option>
+            <option value={10}>10 / page</option>
+            <option value={20}>20 / page</option>
+          </select>
+        </div>
+
+        <div className="text-sm text-cyan-200/60">{totalItems} résultat(s)</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {visible.map((title, i) => (
+          <AnimeCard key={startIndex + i} index={startIndex + i + 1} title={title} />
+        ))}
+
+        {visible.length === 0 && (
+          <div className="col-span-full p-8 text-center text-cyan-300/60">Aucun résultat pour "{query}"</div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm text-cyan-200/60">Page {currentPage} / {totalPages}</div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} onChange={(p) => setCurrentPage(p)} />
+      </div>
+    </section>
+  );
+}
+
+// ----------------- App (page) -----------------
+
+export default function App() {
+  // Example genre buckets (you can replace with real data later)
+  const isekai = ANIME_LIST.slice(0, 8);
+  const action = ANIME_LIST.slice(8, 18);
+  const romance = ANIME_LIST.slice(18, 28);
+
+  return (
+    <div className="min-h-screen bg-black text-cyan-50 font-sans">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-black" />
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#001121] via-transparent to-transparent" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <header className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Logo />
+            </div>
+
+            <div className="hidden md:block">
+              <Nav />
+            </div>
+          </header>
+
+          <main className="mt-8">
+            {/* Top hero / search */}
+            <div className="rounded-2xl border border-[#0b0b0b] bg-black/80 p-6 backdrop-blur-sm">
+              <div className="flex flex-col lg:flex-row gap-6 items-center">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-white">Bienvenue sur AnimeVerse</h1>
+                  <p className="text-cyan-200/60 mt-2">Explore les meilleurs animés, triés par genre, tendance et nouveautés. Intérieur noir, interface sombre et vive.</p>
+
+                  <div className="mt-4 w-full max-w-xl">
+                    <div className="relative">
+                      <input placeholder="Rechercher une série, un genre, ou un mot-clé..." className="w-full rounded-lg border border-[#111] bg-black px-4 py-3 text-sm text-cyan-100 placeholder-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-[#00fff0]/25" />
+                      <button className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-md bg-gradient-to-r from-[#00fff0]/10 to-[#ff4da6]/10 border border-[#222] text-sm">Rechercher</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full lg:w-1/3">
+                  <div className="rounded-lg border border-[#111] bg-black p-4">
+                    <div className="text-sm text-cyan-200/60">Tendances</div>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <div className="text-white font-semibold">Attack on Titan</div>
+                      <div className="text-white font-semibold">Oshi no Ko</div>
+                      <div className="text-white font-semibold">Chainsaw Man</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sections */}
+            <div className="mt-8">
+              <GenreRow title={"Isekai populaires"} items={isekai} />
+              <GenreRow title={"Action & Aventure"} items={action} />
+              <GenreRow title={"Romance / Slice of Life"} items={romance} />
+
+              <div className="rounded-2xl border border-[#0b0b0b] bg-black/80 p-6 mt-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Catalogue complet</h2>
+                <p className="text-sm text-cyan-200/60 mb-4">Parcourir tout le catalogue — recherche et pagination avancées.</p>
+
+                <AnimeList items={ANIME_LIST} />
+              </div>
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+      </div>
+
+      <style>{`
+        .nav-link{
+          color: rgba(149,243,255,0.9);
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all .18s ease-in-out;
+        }
+        .nav-link:hover{
+          transform: translateY(-2px);
+          text-shadow: 0 0 8px rgba(0,255,240,0.14);
+        }
+
+        @media (max-width: 640px){
+          .nav-link{ display:none }
+        }
+      `}</style>
+    </div>
+  );
+}
+import React, { useState, useMemo } from "react";
+
+// Exemple Anime 2023-2025 avec catégories et fiche d'introduction
+const ANIME_LIST = [
+  { id: 1, title: "Oshi no Ko", year: 2023, genre: "Drama", synopsis: "Un drama captivant sur le monde du showbiz.", image: "https://via.placeholder.com/200x200" },
+  { id: 2, title: "Demon Slayer: Kimetsu no Yaiba – Swordsmith Village Arc", year: 2023, genre: "Action", synopsis: "Tanjiro et ses amis affrontent de nouveaux démons.", image: "https://via.placeholder.com/200x200" },
+  { id: 3, title: "Jujutsu Kaisen Season 2", year: 2023, genre: "Action", synopsis: "Saison 2 avec des combats intenses et nouveaux personnages.", image: "https://via.placeholder.com/200x200" },
+  { id: 4, title: "SPY x FAMILY Season 2", year: 2023, genre: "Comedy", synopsis: "La famille espion revient avec de nouvelles missions.", image: "https://via.placeholder.com/200x200" },
+  { id: 5, title: "Hell’s Paradise", year: 2024, genre: "Action", synopsis: "Des ninjas et assassins en quête de rédemption.", image: "https://via.placeholder.com/200x200" },
+  { id: 6, title: "Solo Leveling", year: 2024, genre: "Isekai", synopsis: "Un chasseur faible devient le plus fort du monde.", image: "https://via.placeholder.com/200x200" },
+  { id: 7, title: "Mashle: Magic and Muscles", year: 2025, genre: "Comedy", synopsis: "Un monde magique mais un héros sans magie.", image: "https://via.placeholder.com/200x200" }
+];
+
+const GENRES = ["Action", "Drama", "Comedy", "Isekai", "Romance"];
+
+function Sidebar({ query, setQuery, genre, setGenre }) {
+  return (
+    <div className="w-64 p-4 bg-black border-r border-gray-800 h-screen sticky top-0">
+      <h2 className="text-white font-bold mb-4 text-lg">Recherche</h2>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher un anime..."
+        className="w-full mb-6 px-3 py-2 rounded bg-gray-900 text-white placeholder-gray-400"
+      />
+
+      <h3 className="text-cyan-300 font-semibold mb-2">Filtrer par genre</h3>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-3 py-2 rounded bg-gray-900 text-white">
+        <option value="">Tous</option>
+        {GENRES.map((g) => (<option key={g} value={g}>{g}</option>))}
+      </select>
+    </div>
+  );
+}
+
+function AnimeCard({ anime, onClick }) {
+  return (
+    <div onClick={() => onClick(anime)} className="bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition transform shadow-md">
+      <img src={anime.image} alt={anime.title} className="w-full h-48 object-cover" />
+      <div className="p-2">
+        <h3 className="text-white font-bold text-sm">{anime.title}</h3>
+        <p className="text-cyan-300 text-xs">{anime.year} • {anime.genre}</p>
+      </div>
+    </div>
+  );
+}
+
+function AnimeDetail({ anime, onClose }) {
+  if (!anime) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg max-w-lg w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-cyan-300 font-bold">X</button>
+        <img src={anime.image} alt={anime.title} className="w-full h-64 object-cover rounded mb-4" />
+        <h2 className="text-white text-2xl font-bold mb-2">{anime.title}</h2>
+        <p className="text-cyan-300 mb-2">Année : {anime.year}</p>
+        <p className="text-cyan-300 mb-2">Genre : {anime.genre}</p>
+        <p className="text-gray-300">{anime.synopsis}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [genre, setGenre] = useState("");
+  const [selectedAnime, setSelectedAnime] = useState(null);
+
+  const filtered = useMemo(() => {
+    return ANIME_LIST.filter(a =>
+      a.title.toLowerCase().includes(query.toLowerCase()) &&
+      (genre === "" || a.genre === genre)
+    );
+  }, [query, genre]);
+
+  return (
+    <div className="flex bg-black min-h-screen text-white">
+      <Sidebar query={query} setQuery={setQuery} genre={genre} setGenre={setGenre} />
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-4">Catalogue 2023-2025</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filtered.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} onClick={setSelectedAnime} />
+          ))}
+        </div>
+      </main>
+
+      <AnimeDetail anime={selectedAnime} onClose={() => setSelectedAnime(null)} />
+    </div>
+  );
+}import React, { useState, useMemo } from "react";
+
+// ---------------- Exemple Anime ----------------
+const ANIME_LIST = [
+  { id: 1, title: "Oshi no Ko", year: 2023, genre: "Drama", synopsis: "Un drama captivant sur le monde du showbiz.", image: "https://via.placeholder.com/200x200" },
+  { id: 2, title: "Demon Slayer: Swordsmith Village", year: 2023, genre: "Action", synopsis: "Tanjiro et ses amis affrontent de nouveaux démons.", image: "https://via.placeholder.com/200x200" },
+  { id: 3, title: "Jujutsu Kaisen S2", year: 2023, genre: "Action", synopsis: "Saison 2 avec des combats intenses.", image: "https://via.placeholder.com/200x200" },
+  { id: 4, title: "SPY x FAMILY S2", year: 2023, genre: "Comedy", synopsis: "La famille espion revient.", image: "https://via.placeholder.com/200x200" },
+  { id: 5, title: "Solo Leveling", year: 2024, genre: "Isekai", synopsis: "Un chasseur faible devient le plus fort.", image: "https://via.placeholder.com/200x200" },
+  { id: 6, title: "Mashle: Magic and Muscles", year: 2025, genre: "Comedy", synopsis: "Un monde magique mais un héros sans magie.", image: "https://via.placeholder.com/200x200" }
+];
+
+const GENRES = ["Action", "Drama", "Comedy", "Isekai", "Romance"];
+
+const CHAT_INITIAL = [
+  { user: "System", message: "Bienvenue sur AnimeVerse !" },
+  { user: "Admin", message: "Anime du moment : Oshi no Ko" },
+  { user: "Admin", message: "Manga du moment : Solo Leveling" }
+];
+
+// ---------------- Sidebar gauche ----------------
+function Sidebar({ query, setQuery, genre, setGenre }) {
+  return (
+    <div className="w-64 p-4 bg-black border-r border-gray-800 h-screen sticky top-0">
+      <h2 className="text-white font-bold mb-4 text-lg">Recherche</h2>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher un anime..."
+        className="w-full mb-6 px-3 py-2 rounded bg-gray-900 text-white placeholder-gray-400"
+      />
+      <h3 className="text-cyan-300 font-semibold mb-2">Filtrer par genre</h3>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-3 py-2 rounded bg-gray-900 text-white">
+        <option value="">Tous</option>
+        {GENRES.map((g) => (<option key={g} value={g}>{g}</option>))}
+      </select>
+    </div>
+  );
+}
+
+// ---------------- Sidebar droite (chat + nouveautés) ----------------
+function RightPanel({ messages, setMessages }) {
+  const [input, setInput] = useState("");
+
+  const handleSend = () => {
+    if (input.trim() === "") return;
+    setMessages([...messages, { user: "Guest", message: input }]);
+    setInput("");
+  };
+
+  return (
+    <div className="w-64 p-4 bg-black border-l border-gray-800 h-screen sticky top-0 flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Chat AnimeVerse</h2>
+        <div className="h-48 overflow-y-auto mb-2 border border-gray-700 rounded p-2 bg-gray-900">
+          {messages.map((m, i) => (
+            <div key={i} className="mb-1">
+              <span className="font-semibold text-cyan-300">{m.user}:</span> <span className="text-white text-sm">{m.message}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Écrire un message..."
+            className="flex-1 px-2 py-1 rounded bg-gray-800 text-white placeholder-gray-400"
+          />
+          <button onClick={handleSend} className="px-3 py-1 bg-cyan-500 rounded hover:bg-cyan-400 transition">Envoyer</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Anime du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Oshi no Ko</li>
+          <li>Demon Slayer S3</li>
+          <li>Solo Leveling</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-white font-bold text-lg mb-2">Manga du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Solo Leveling</li>
+          <li>Jujutsu Kaisen</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Carte anime ----------------
+function AnimeCard({ anime, onClick }) {
+  return (
+    <div onClick={() => onClick(anime)} className="bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition transform shadow-md">
+      <img src={anime.image} alt={anime.title} className="w-full h-48 object-cover" />
+      <div className="p-2">
+        <h3 className="text-white font-bold text-sm">{anime.title}</h3>
+        <p className="text-cyan-300 text-xs">{anime.year} • {anime.genre}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Fiche détail ----------------
+function AnimeDetail({ anime, onClose }) {
+  if (!anime) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg max-w-lg w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-cyan-300 font-bold">X</button>
+        <img src={anime.image} alt={anime.title} className="w-full h-64 object-cover rounded mb-4" />
+        <h2 className="text-white text-2xl font-bold mb-2">{anime.title}</h2>
+        <p className="text-cyan-300 mb-2">Année : {anime.year}</p>
+        <p className="text-cyan-300 mb-2">Genre : {anime.genre}</p>
+        <p className="text-gray-300">{anime.synopsis}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- App ----------------
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [genre, setGenre] = useState("");
+  const [selectedAnime, setSelectedAnime] = useState(null);
+  const [messages, setMessages] = useState(CHAT_INITIAL);
+
+  const filtered = useMemo(() => {
+    return ANIME_LIST.filter(a =>
+      a.title.toLowerCase().includes(query.toLowerCase()) &&
+      (genre === "" || a.genre === genre)
+    );
+  }, [query, genre]);
+
+  return (
+    <div className="flex bg-black min-h-screen text-white">
+      <Sidebar query={query} setQuery={setQuery} genre={genre} setGenre={setGenre} />
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-4">Catalogue 2023-2025</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filtered.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} onClick={setSelectedAnime} />
+          ))}
+        </div>
+      </main>
+      <RightPanel messages={messages} setMessages={setMessages} />
+      <AnimeDetail anime={selectedAnime} onClose={() => setSelectedAnime(null)} />
+    </div>
+  );
+}import React, { useState, useMemo } from "react";
+
+// ---------------- Exemple Anime ----------------
+const ANIME_LIST = [
+  { id: 1, title: "Oshi no Ko", year: 2023, genre: "Drama", synopsis: "Un drama captivant sur le monde du showbiz.", image: "https://via.placeholder.com/200x200" },
+  { id: 2, title: "Demon Slayer: Swordsmith Village", year: 2023, genre: "Action", synopsis: "Tanjiro et ses amis affrontent de nouveaux démons.", image: "https://via.placeholder.com/200x200" },
+  { id: 3, title: "Jujutsu Kaisen S2", year: 2023, genre: "Action", synopsis: "Saison 2 avec des combats intenses.", image: "https://via.placeholder.com/200x200" },
+  { id: 4, title: "SPY x FAMILY S2", year: 2023, genre: "Comedy", synopsis: "La famille espion revient.", image: "https://via.placeholder.com/200x200" },
+  { id: 5, title: "Solo Leveling", year: 2024, genre: "Isekai", synopsis: "Un chasseur faible devient le plus fort.", image: "https://via.placeholder.com/200x200" },
+  { id: 6, title: "Mashle: Magic and Muscles", year: 2025, genre: "Comedy", synopsis: "Un monde magique mais un héros sans magie.", image: "https://via.placeholder.com/200x200" }
+];
+
+const GENRES = ["Action", "Drama", "Comedy", "Isekai", "Romance"];
+
+const CHAT_INITIAL = [
+  { user: "System", message: "Bienvenue sur AnimeVerse !" },
+  { user: "Admin", message: "Anime du moment : Oshi no Ko" },
+  { user: "Admin", message: "Manga du moment : Solo Leveling" }
+];
+
+// ---------------- Sidebar gauche ----------------
+function Sidebar({ query, setQuery, genre, setGenre }) {
+  return (
+    <div className="w-64 p-4 bg-black border-r border-gray-800 h-screen sticky top-0">
+      <h2 className="text-white font-bold mb-4 text-lg">Recherche</h2>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher un anime..."
+        className="w-full mb-6 px-3 py-2 rounded bg-gray-900 text-white placeholder-gray-400"
+      />
+      <h3 className="text-cyan-300 font-semibold mb-2">Filtrer par genre</h3>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-3 py-2 rounded bg-gray-900 text-white">
+        <option value="">Tous</option>
+        {GENRES.map((g) => (<option key={g} value={g}>{g}</option>))}
+      </select>
+    </div>
+  );
+}
+
+// ---------------- Sidebar droite (chat + nouveautés) ----------------
+function RightPanel({ messages, setMessages }) {
+  const [input, setInput] = useState("");
+
+  const handleSend = () => {
+    if (input.trim() === "") return;
+    setMessages([...messages, { user: "Guest", message: input }]);
+    setInput("");
+  };
+
+  return (
+    <div className="w-64 p-4 bg-black border-l border-gray-800 h-screen sticky top-0 flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Chat AnimeVerse</h2>
+        <div className="h-48 overflow-y-auto mb-2 border border-gray-700 rounded p-2 bg-gray-900">
+          {messages.map((m, i) => (
+            <div key={i} className="mb-1">
+              <span className="font-semibold text-cyan-300">{m.user}:</span> <span className="text-white text-sm">{m.message}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Écrire un message..."
+            className="flex-1 px-2 py-1 rounded bg-gray-800 text-white placeholder-gray-400"
+          />
+          <button onClick={handleSend} className="px-3 py-1 bg-cyan-500 rounded hover:bg-cyan-400 transition">Envoyer</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Anime du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Oshi no Ko</li>
+          <li>Demon Slayer S3</li>
+          <li>Solo Leveling</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-white font-bold text-lg mb-2">Manga du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Solo Leveling</li>
+          <li>Jujutsu Kaisen</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Carte anime ----------------
+function AnimeCard({ anime, onClick }) {
+  return (
+    <div onClick={() => onClick(anime)} className="bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition transform shadow-md">
+      <img src={anime.image} alt={anime.title} className="w-full h-48 object-cover" />
+      <div className="p-2">
+        <h3 className="text-white font-bold text-sm">{anime.title}</h3>
+        <p className="text-cyan-300 text-xs">{anime.year} • {anime.genre}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Fiche détail ----------------
+function AnimeDetail({ anime, onClose }) {
+  if (!anime) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg max-w-lg w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-cyan-300 font-bold">X</button>
+        <img src={anime.image} alt={anime.title} className="w-full h-64 object-cover rounded mb-4" />
+        <h2 className="text-white text-2xl font-bold mb-2">{anime.title}</h2>
+        <p className="text-cyan-300 mb-2">Année : {anime.year}</p>
+        <p className="text-cyan-300 mb-2">Genre : {anime.genre}</p>
+        <p className="text-gray-300">{anime.synopsis}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- App ----------------
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [genre, setGenre] = useState("");
+  const [selectedAnime, setSelectedAnime] = useState(null);
+  const [messages, setMessages] = useState(CHAT_INITIAL);
+
+  const filtered = useMemo(() => {
+    return ANIME_LIST.filter(a =>
+      a.title.toLowerCase().includes(query.toLowerCase()) &&
+      (genre === "" || a.genre === genre)
+    );
+  }, [query, genre]);
+
+  return (
+    <div className="flex bg-black min-h-screen text-white">
+      <Sidebar query={query} setQuery={setQuery} genre={genre} setGenre={setGenre} />
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-4">Catalogue 2023-2025</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filtered.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} onClick={setSelectedAnime} />
+          ))}
+        </div>
+      </main>
+      <RightPanel messages={messages} setMessages={setMessages} />
+      <AnimeDetail anime={selectedAnime} onClose={() => setSelectedAnime(null)} />
+    </div>
+  );
+}import React, { useState, useMemo } from "react";
+
+// ---------------- Exemple Anime ----------------
+const ANIME_LIST = [
+  { id: 1, title: "Oshi no Ko", year: 2023, genre: "Drama", synopsis: "Un drama captivant sur le monde du showbiz.", image: "https://via.placeholder.com/200x200" },
+  { id: 2, title: "Demon Slayer: Swordsmith Village", year: 2023, genre: "Action", synopsis: "Tanjiro et ses amis affrontent de nouveaux démons.", image: "https://via.placeholder.com/200x200" },
+  { id: 3, title: "Jujutsu Kaisen S2", year: 2023, genre: "Action", synopsis: "Saison 2 avec des combats intenses.", image: "https://via.placeholder.com/200x200" },
+  { id: 4, title: "SPY x FAMILY S2", year: 2023, genre: "Comedy", synopsis: "La famille espion revient.", image: "https://via.placeholder.com/200x200" },
+  { id: 5, title: "Solo Leveling", year: 2024, genre: "Isekai", synopsis: "Un chasseur faible devient le plus fort.", image: "https://via.placeholder.com/200x200" },
+  { id: 6, title: "Mashle: Magic and Muscles", year: 2025, genre: "Comedy", synopsis: "Un monde magique mais un héros sans magie.", image: "https://via.placeholder.com/200x200" }
+];
+
+const GENRES = ["Action", "Drama", "Comedy", "Isekai", "Romance"];
+
+const CHAT_INITIAL = [
+  { user: "System", message: "Bienvenue sur AnimeVerse !" },
+  { user: "Admin", message: "Anime du moment : Oshi no Ko" },
+  { user: "Admin", message: "Manga du moment : Solo Leveling" }
+];
+
+// ---------------- Sidebar gauche ----------------
+function Sidebar({ query, setQuery, genre, setGenre }) {
+  return (
+    <div className="w-64 p-4 bg-black border-r border-gray-800 h-screen sticky top-0">
+      <h2 className="text-white font-bold mb-4 text-lg">Recherche</h2>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher un anime..."
+        className="w-full mb-6 px-3 py-2 rounded bg-gray-900 text-white placeholder-gray-400"
+      />
+      <h3 className="text-cyan-300 font-semibold mb-2">Filtrer par genre</h3>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-3 py-2 rounded bg-gray-900 text-white">
+        <option value="">Tous</option>
+        {GENRES.map((g) => (<option key={g} value={g}>{g}</option>))}
+      </select>
+    </div>
+  );
+}
+
+// ---------------- Sidebar droite (chat + nouveautés) ----------------
+function RightPanel({ messages, setMessages }) {
+  const [input, setInput] = useState("");
+
+  const handleSend = () => {
+    if (input.trim() === "") return;
+    setMessages([...messages, { user: "Guest", message: input }]);
+    setInput("");
+  };
+
+  return (
+    <div className="w-64 p-4 bg-black border-l border-gray-800 h-screen sticky top-0 flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Chat AnimeVerse</h2>
+        <div className="h-48 overflow-y-auto mb-2 border border-gray-700 rounded p-2 bg-gray-900">
+          {messages.map((m, i) => (
+            <div key={i} className="mb-1">
+              <span className="font-semibold text-cyan-300">{m.user}:</span> <span className="text-white text-sm">{m.message}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Écrire un message..."
+            className="flex-1 px-2 py-1 rounded bg-gray-800 text-white placeholder-gray-400"
+          />
+          <button onClick={handleSend} className="px-3 py-1 bg-cyan-500 rounded hover:bg-cyan-400 transition">Envoyer</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Anime du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Oshi no Ko</li>
+          <li>Demon Slayer S3</li>
+          <li>Solo Leveling</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-white font-bold text-lg mb-2">Manga du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Solo Leveling</li>
+          <li>Jujutsu Kaisen</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Carte anime ----------------
+function AnimeCard({ anime, onClick }) {
+  return (
+    <div onClick={() => onClick(anime)} className="bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition transform shadow-md">
+      <img src={anime.image} alt={anime.title} className="w-full h-48 object-cover" />
+      <div className="p-2">
+        <h3 className="text-white font-bold text-sm">{anime.title}</h3>
+        <p className="text-cyan-300 text-xs">{anime.year} • {anime.genre}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Fiche détail ----------------
+function AnimeDetail({ anime, onClose }) {
+  if (!anime) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg max-w-lg w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-cyan-300 font-bold">X</button>
+        <img src={anime.image} alt={anime.title} className="w-full h-64 object-cover rounded mb-4" />
+        <h2 className="text-white text-2xl font-bold mb-2">{anime.title}</h2>
+        <p className="text-cyan-300 mb-2">Année : {anime.year}</p>
+        <p className="text-cyan-300 mb-2">Genre : {anime.genre}</p>
+        <p className="text-gray-300">{anime.synopsis}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- App ----------------
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [genre, setGenre] = useState("");
+  const [selectedAnime, setSelectedAnime] = useState(null);
+  const [messages, setMessages] = useState(CHAT_INITIAL);
+
+  const filtered = useMemo(() => {
+    return ANIME_LIST.filter(a =>
+      a.title.toLowerCase().includes(query.toLowerCase()) &&
+      (genre === "" || a.genre === genre)
+    );
+  }, [query, genre]);
+
+  return (
+    <div className="flex bg-black min-h-screen text-white">
+      <Sidebar query={query} setQuery={setQuery} genre={genre} setGenre={setGenre} />
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-4">Catalogue 2023-2025</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filtered.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} onClick={setSelectedAnime} />
+          ))}
+        </div>
+      </main>
+      <RightPanel messages={messages} setMessages={setMessages} />
+      <AnimeDetail anime={selectedAnime} onClose={() => setSelectedAnime(null)} />
+    </div>
+  );
+}import React, { useState, useMemo, useEffect, useRef } from "react";
+
+// ---------------- Exemple Anime ----------------
+const ANIME_LIST = [
+  { id: 1, title: "Oshi no Ko", year: 2023, genre: "Drama", synopsis: "Un drama captivant sur le monde du showbiz.", image: "https://via.placeholder.com/200x200" },
+  { id: 2, title: "Demon Slayer: Swordsmith Village", year: 2023, genre: "Action", synopsis: "Tanjiro et ses amis affrontent de nouveaux démons.", image: "https://via.placeholder.com/200x200" },
+  { id: 3, title: "Jujutsu Kaisen S2", year: 2023, genre: "Action", synopsis: "Saison 2 avec des combats intenses.", image: "https://via.placeholder.com/200x200" },
+  { id: 4, title: "SPY x FAMILY S2", year: 2023, genre: "Comedy", synopsis: "La famille espion revient.", image: "https://via.placeholder.com/200x200" },
+  { id: 5, title: "Solo Leveling", year: 2024, genre: "Isekai", synopsis: "Un chasseur faible devient le plus fort.", image: "https://via.placeholder.com/200x200" },
+  { id: 6, title: "Mashle: Magic and Muscles", year: 2025, genre: "Comedy", synopsis: "Un monde magique mais un héros sans magie.", image: "https://via.placeholder.com/200x200" }
+];
+
+const GENRES = ["Action", "Drama", "Comedy", "Isekai", "Romance"];
+
+const CHAT_INITIAL = [
+  { user: "System", message: "Bienvenue sur AnimeVerse !" },
+  { user: "Admin", message: "Anime du moment : Oshi no Ko" },
+  { user: "Admin", message: "Manga du moment : Solo Leveling" }
+];
+
+// ---------------- Sidebar gauche ----------------
+function Sidebar({ query, setQuery, genre, setGenre }) {
+  return (
+    <div className="w-64 p-4 bg-black border-r border-gray-800 h-screen sticky top-0">
+      <h2 className="text-white font-bold mb-4 text-lg">Recherche</h2>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher un anime..."
+        className="w-full mb-6 px-3 py-2 rounded bg-gray-900 text-white placeholder-gray-400"
+      />
+      <h3 className="text-cyan-300 font-semibold mb-2">Filtrer par genre</h3>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-3 py-2 rounded bg-gray-900 text-white">
+        <option value="">Tous</option>
+        {GENRES.map((g) => (<option key={g} value={g}>{g}</option>))}
+      </select>
+    </div>
+  );
+}
+
+// ---------------- Sidebar droite (chat + nouveautés + autoscroll + notifications) ----------------
+function RightPanel({ messages, setMessages, newUser }) {
+  const [input, setInput] = useState("");
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    // Autoscroll quand messages changent
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (newUser) {
+      setMessages(prev => [...prev, { user: "System", message: `Bienvenue ${newUser} ! 🎉` }]);
+    }
+  }, [newUser]);
+
+  const handleSend = () => {
+    if (input.trim() === "") return;
+    setMessages([...messages, { user: "Guest", message: input }]);
+    setInput("");
+  };
+
+  return (
+    <div className="w-64 p-4 bg-black border-l border-gray-800 h-screen sticky top-0 flex flex-col">
+      <div className="mb-4 flex-1 flex flex-col">
+        <h2 className="text-white font-bold text-lg mb-2">Chat AnimeVerse</h2>
+        <div className="flex-1 overflow-y-auto mb-2 border border-gray-700 rounded p-2 bg-gray-900">
+          {messages.map((m, i) => (
+            <div key={i} className="mb-1">
+              <span className="font-semibold text-cyan-300">{m.user}:</span> <span className="text-white text-sm">{m.message}</span>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Écrire un message..."
+            className="flex-1 px-2 py-1 rounded bg-gray-800 text-white placeholder-gray-400"
+          />
+          <button onClick={handleSend} className="px-3 py-1 bg-cyan-500 rounded hover:bg-cyan-400 transition">Envoyer</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-white font-bold text-lg mb-2">Anime du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Oshi no Ko</li>
+          <li>Demon Slayer S3</li>
+          <li>Solo Leveling</li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-white font-bold text-lg mb-2">Manga du moment</h2>
+        <ul className="text-cyan-200 text-sm">
+          <li>Solo Leveling</li>
+          <li>Jujutsu Kaisen</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Carte anime ----------------
+function AnimeCard({ anime, onClick }) {
+  return (
+    <div onClick={() => onClick(anime)} className="bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition transform shadow-md">
+      <img src={anime.image} alt={anime.title} className="w-full h-48 object-cover" />
+      <div className="p-2">
+        <h3 className="text-white font-bold text-sm">{anime.title}</h3>
+        <p className="text-cyan-300 text-xs">{anime.year} • {anime.genre}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Fiche détail ----------------
+function AnimeDetail({ anime, onClose }) {
+  if (!anime) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-lg max-w-lg w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-cyan-300 font-bold">X</button>
+        <img src={anime.image} alt={anime.title} className="w-full h-64 object-cover rounded mb-4" />
+        <h2 className="text-white text-2xl font-bold mb-2">{anime.title}</h2>
+        <p className="text-cyan-300 mb-2">Année : {anime.year}</p>
+        <p className="text-cyan-300 mb-2">Genre : {anime.genre}</p>
+        <p className="text-gray-300">{anime.synopsis}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- App ----------------
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [genre, setGenre] = useState("");
+  const [selectedAnime, setSelectedAnime] = useState(null);
+  const [messages, setMessages] = useState(CHAT_INITIAL);
+  const [newUser, setNewUser] = useState("NouveauMembre"); // simuler nouvel inscrit
+
+  const filtered = useMemo(() => {
+    return ANIME_LIST.filter(a =>
+      a.title.toLowerCase().includes(query.toLowerCase()) &&
+      (genre === "" || a.genre === genre)
+    );
+  }, [query, genre]);
+
+  return (
+    <div className="flex bg-black min-h-screen text-white">
+      <Sidebar query={query} setQuery={setQuery} genre={genre} setGenre={setGenre} />
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-4">Catalogue 2023-2025</h1import React, { useState } from "react";
+
+const tournamentAnimes = [
+  { id: 1, title: "Oshi no Ko", votes: 0 },
+  { id: 2, title: "Demon Slayer", votes: 0 },
+  { id: 3, title: "Solo Leveling", votes: 0 },
+];
+
+export default function AnimeTournament() {
+  const [animes, setAnimes] = useState(tournamentAnimes);
+
+  const vote = (id) => {
+    setAnimes(animes.map(a => a.id === id ? {...a, votes: a.votes + 1} : a));
+  };
+
+  const sorted = [...animes].sort((a,b) => b.votes - a.votes);
+
+  return (
+    <div className="bg-gray-900 p-4 rounded shadow-md text-white">
+      <h2 className="text-2xl font-bold mb-4">Tournoi AnimeGarden 🎉</h2>
+      <ul>
+        {sorted.map(a => (
+          <li key={a.id} className="mb-2 flex justify-between items-center">
+            <span>{a.title}</span>
+            <div className="flex gap-2">
+              <span className="text-cyan-300">{a.votes} votes</span>
+              <button
+                onClick={() => vote(a.id)}
+                className="bg-cyan-500 px-2 py-1 rounded hover:bg-cyan-400"
+              >
+                Voter
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+<AnimeTournament 
+  tournamentName="Championnat Anime 2025"
+  maxVotesPerUser={3} 
+  categories={["Action", "Isekai"]}
+/>
+import React, { useState, useEffect } from "react";
+
+// Exemple d'animes
+const defaultAnimes = [
+  { id: 1, title: "Oshi no Ko", votes: 0, image: "https://via.placeholder.com/100" },
+  { id: 2, title: "Demon Slayer", votes: 0, image: "https://via.placeholder.com/100" },
+  { id: 3, title: "Solo Leveling", votes: 0, image: "https://via.placeholder.com/100" }
+];
+
+// ---------------- Composant Tournoi ----------------
+export default function AnimeTournament({ tournamentName = "Tournoi Anime", maxVotesPerUser = 3 }) {
+  const [animes, setAnimes] = useState(defaultAnimes);
+  const [userVotes, setUserVotes] = useState(0);
+
+  const vote = (id) => {
+    if (userVotes >= maxVotesPerUser) {
+      alert(`Vous avez atteint le maximum de ${maxVotesPerUser} votes !`);
+      return;
+    }
+    setAnimes(animes.map(a => a.id === id ? {...a, votes: a.votes + 1} : a));
+    setUserVotes(userVotes + 1);
+  };
+
+  const sorted = [...animes].sort((a,b) => b.votes - a.votes);
+
+  return (
+    <div className="bg-gray-900 p-4 rounded shadow-md text-white w-full md:w-96">
+      <h2 className="text-2xl font-bold mb-2">{tournamentName}</h2>
+      <p className="text-gray-300 mb-4">Vous pouvez voter jusqu'à {maxVotesPerUser} fois. Cliquez sur un anime pour voter !</p>
+      
+      <ul className="space-y-2">
+        {sorted.map(a => (
+          <li key={a.id} className="flex items-center justify-between bg-gray-800 p-2 rounded hover:bg-gray-700 cursor-pointer"
+              onClick={() => vote(a.id)}>
+            <div className="flex items-center gap-2">
+              <img src={a.image} alt={a.title} className="w-12 h-12 rounded"/>
+              <span>{a.title}</span>
+            </div>
+            <span className="text-cyan-300 font-bold">{a.votes} votes</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4 p-2 bg-gray-800 rounded">
+        <h3 className="text-white font-semibold mb-1">Aide pour les spectateurs :</h3>
+        <ul className="text-gray-300 text-sm list-disc list-inside">
+          <li>Cliquez sur un anime pour voter.</li>
+          <li>Vous ne pouvez voter que {maxVotesPerUser} fois.</li>
+          <li>Le classement se met à jour en direct.</li>
+          <li>Les nouveaux tournois apparaîtront ici.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+import React from "react";
+
+// Exemple d'images d'anime
+const bannerImages = [
+  "https://via.placeholder.com/150x200?text=Anime1",
+  "https://via.placeholder.com/150x200?text=Anime2",
+  "https://via.placeholder.com/150x200?text=Anime3",
+  "https://via.placeholder.com/150x200?text=Anime4",
+  "https://via.placeholder.com/150x200?text=Anime5",
+  "https://via.placeholder.com/150x200?text=Anime6"
+];
+
+export default function WelcomeBanner({ userName = "Waifu" }) {
+  return (
+    <div className="w-full bg-black p-4 mb-6 rounded-lg shadow-lg relative overflow-hidden">
+      <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 z-10 relative">
+        Bienvenue sur AnimeGarden, {userName} ! 🌸
+      </h1>
+      <p className="text-cyan-300 mb-4 relative z-10">
+        Plonge dans l’univers des meilleurs animes 2023-2025 !
+      </p>
+
+      {/* Grid d’images animée */}
+      <div className="absolute inset-0 grid grid-cols-3 md:grid-cols-6 gap-1 opacity-20 animate-pulse">
+        {bannerImages.map((img, idx) => (
+          <img key={idx} src={img} alt={`Anime ${idx}`} className="w-full h-full object-cover rounded"/>
+        ))}
+      </div>
+
+      {/* Overlay gradient pour lisibilité */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
+    </div>
+  );
+}
+// config.js
+export const SITE_CONFIG = {
+  siteName: "AnimeGarden",
+  creatorName: "Fénix Matamoros",
+  theme: "cyberpunk",
+  welcomeMessage: "Bienvenue sur AnimeGarden ! Plonge dans l’univers des meilleurs animes 2023-2025 !"
+};
+import React from "react";
+import { SITE_CONFIG } from "./config";
+import WelcomeBanner from "./WelcomeBanner";
+
+export default function App() {
+  return (
+    <div className="bg-black min-h-screen text-white">
+      {/* Bannière d’accueil avec message et pseudo */}
+      <WelcomeBanner userName={SITE_CONFIG.creatorName} />
+
+      {/* Exemple d’affichage du créateur dans le footer */}
+      <footer className="p-4 text-center text-gray-400">
+        &copy; 2025 {SITE_CONFIG.siteName} - Créé par {SITE_CONFIG.creatorName}
+      </footer>
+    </div>
+  );
+}
+// config.js
+
+export const SITE_CONFIG = {
+  siteName: "AnimeGarden",
+  creatorName: "Fénix Matamoros",
+  theme: "cyberpunk",
+  
+  // Message de bienvenue général
+  welcomeMessage: "Bienvenue sur AnimeGarden ! Plonge dans l’univers des meilleurs animes 2023-2025 !",
+
+  // Paramètres du chat
+  chat: {
+    defaultMessages: [
+      { user: "System", message: "Bienvenue sur AnimeGarden !" },
+      { user: "Admin", message: "Anime du moment : Oshi no Ko" },
+      { user: "Admin", message: "Manga du moment : Solo Leveling" }
+    ],
+    maxMessageLength: 200
+  },
+
+  // Paramètres des tournois
+  tournament: {
+    maxVotesPerUser: 3,
+    defaultAnimes: [
+      { id: 1, title: "Oshi no Ko", votes: 0, image: "https://via.placeholder.com/100" },
+      { id: 2, title: "Demon Slayer", votes: 0, image: "https://via.placeholder.com/100" },
+      { id: 3, title: "Solo Leveling", votes: 0, image: "https://via.placeholder.com/100" }
+    ]
+  },
+
+  // Sidebar gauche
+  sidebar: {
+    genres: ["Action", "Drama", "Comedy", "Isekai", "Romance"]
+  },
+
+  // Bannière d’accueil
+  welcomeBanner: {
+    defaultUserName: "Waifu",
+    bannerImages: [
+      "https://via.placeholder.com/150x200?text=Anime1",
+      "https://via.placeholder.com/150x200?text=Anime2",
+      "https://via.placeholder.com/150x200?text=Anime3",
+      "https://via.placeholder.com/150x200?text=Anime4",
+      "https://via.placeholder.com/150x200?text=Anime5",
+      "https://via.placeholder.com/150x200?text=Anime6"
+    ]
+  }
+};
+import { SITE_CONFIG } from "./config";
+import WelcomeBanner from "./WelcomeBanner";
+
+<WelcomeBanner userName={SITE_CONFIG.creatorName} />
+<footer className="p-4 text-center text-gray-400">
+  &copy; 2025 {SITE_CONFIG.siteName} - Créé par {SITE_CONFIG.creatorName}
+</footer>
+const [messages, setMessages] = useState(SITE_CONFIG.chat.defaultMessages);
+<AnimeTournament
+  tournamentName="Tournoi AnimeGarden"
+  maxVotesPerUser={SITE_CONFIG.tournament.maxVotesPerUser}
+  defaultAnimes={SITE_CONFIG.tournament.defaultAnimes}
+/>
+import React, { useState, useEffect } from "react";
+
+export default function MembersCount() {
+  const [members, setMembers] = useState(1245); // nombre initial
+
+  // Optionnel : simulation d'inscription aléatoire
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMembers(prev => prev + Math.floor(Math.random() * 3)); // +0,1,2 nouveaux membres
+    }, 5000); // chaque 5 secondes
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-gray-900 p-2 rounded text-center text-white w-48">
+      <h3 className="text-cyan-300 font-bold">Membres inscrits</h3>
+      <p className="text-white text-2xl">{members.toLocaleString()}</p>
+    </div>
+  );
+}
+import { collection, getCountFromServer } from "firebase/firestore";
+import { db } from "./firebaseConfig";
+
+async function fetchMembersCount() {
+  const coll = collection(db, "users");
+  const snapshot = await getCountFromServer(coll);
+  return snapshot.data().count;
+}
+import React, { useState, useEffect } from "react";
+
+export default function ActiveMembersBadge({ initialCount = 42 }) {
+  const [activeMembers, setActiveMembers] = useState(initialCount);
+
+  // Simulation des membres actifs
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // fluctuation aléatoire pour simuler activité
+      setActiveMembers(prev => {
+        let change = Math.floor(Math.random() * 3) - 1; // -1, 0, +1
+        let next = prev + change;
+        return next < 0 ? 0 : next;
+      });
+    }, 3000); // toutes les 3 secondes
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 p-2 bg-gray-800 rounded-lg shadow-lg">
+      <div className="relative">
+        {/* Cercle animé pulsant */}
+        <span className="absolute inline-flex h-3 w-3 top-0 right-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        </span>
+      </div>
+      <span className="text-white font-bold">{activeMembers.toLocaleString()} Actifs</span>
+    </div>
+  );
+}
+<div className="flex flex-col gap-4">
+  <ActiveMembersBadge initialCount={58} />
+  <RightPanel messages={messages} setMessages={setMessages} newUser={newUser} />
+</div>
+<WelcomeBanner userName={SITE_CONFIG.creatorName} />
+<div className="absolute top-4 right-4">
+  <ActiveMembersBadge initialCount={58} />
+</div>
