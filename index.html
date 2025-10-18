@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>AnimeGarden - Accueil</title>
   <style>
     body {
-      font-family: sans-serif;
       margin: 0;
-      background-color: #f2f2f2;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      color: #333;
     }
     header {
       background-image: url('https://wallpapers.com/images/featured/anime-aesthetic-9iqz4lyby1k1h5ck.jpg');
@@ -15,100 +16,157 @@
       background-position: center;
       height: 300px;
       color: white;
-      text-align: center;
       display: flex;
       flex-direction: column;
       justify-content: center;
-    }
-    header h1 {
-      font-size: 48px;
-      margin: 0;
+      align-items: center;
       text-shadow: 1px 1px 4px #000;
     }
+    header h1 {
+      font-size: 3rem;
+      margin: 0;
+    }
     header p {
-      font-size: 20px;
+      font-size: 1.2rem;
       margin-top: 10px;
-      text-shadow: 1px 1px 3px #000;
     }
     main {
-      padding: 30px;
       max-width: 1000px;
-      margin: auto;
+      margin: 30px auto;
+      padding: 0 20px;
     }
     section {
       margin-bottom: 40px;
     }
     h2 {
-      border-bottom: 2px solid #00b894;
+      border-bottom: 3px solid #00b894;
       padding-bottom: 10px;
-      color: #2d3436;
+      margin-bottom: 20px;
     }
-    .card-container {
+    .cards {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
+      gap: 15px;
     }
     .card {
-      background-color: white;
+      background: white;
       border-radius: 10px;
-      padding: 15px;
-      width: 200px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 180px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.05);
     }
     .card img {
       width: 100%;
-      border-radius: 8px;
+      height: 250px;
+      object-fit: cover;
     }
     .card h3 {
-      margin-top: 10px;
-      font-size: 16px;
-      color: #2d3436;
+      margin: 10px;
+      font-size: 1.1rem;
     }
     .card p {
-      font-size: 13px;
-      color: #636e72;
+      margin: 0 10px 10px 10px;
+      font-size: 0.9rem;
+      color: #555;
+      flex-grow: 1;
     }
     footer {
-      background: #2d3436;
-      color: white;
       text-align: center;
       padding: 20px;
-      margin-top: 40px;
+      background: #2d3436;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>AnimeGarden</h1>
-    <p>Le jardin des animés et mangas à découvrir !</p>
-  </header>
 
-  <main>
-    <section>
-      <h2>🌟 Animés Recommandés</h2>
-      <div class="card-container">
-        <div class="card">
-          <img src="https://cdn.myanimelist.net/images/anime/1208/94745.jpg" alt="Demon Slayer">
-          <h3>Demon Slayer</h3>
-          <p>Un jeune pourfendeur de démons part en quête pour sauver sa sœur.</p>
-        </div>
-        <div class="card">
-          <img src="https://cdn.myanimelist.net/images/anime/1988/127592.jpg" alt="Jujutsu Kaisen">
-          <h3>Jujutsu Kaisen</h3>
-          <p>Un étudiant héberge une malédiction en lui et entre dans une école spéciale.</p>
-        </div>
-      </div>
-    </section>
+<header>
+  <h1>AnimeGarden</h1>
+  <p>Le jardin des animés et mangas à découvrir !</p>
+</header>
 
-    <section>
-      <h2>📚 Mangas à Lire</h2>
-      <div class="card-container">
-        <div class="card">
-          <img src="https://cdn.myanimelist.net/images/manga/3/157933.jpg" alt="One Piece">
-          <h3>One Piece</h3>
-          <p>Luffy part à l’aventure pour devenir le roi des pirates.</p>
-        </div>
-        <div class="card">
-          <img src="https://cdn.myanimelist.net/images/manga/2/253146.jpg" alt="Chainsaw Man">
-          <h3>Chainsaw Man</h3>
+<main>
+  <section>
+    <h2>🌟 Animés Recommandés</h2>
+    <div id="recommended" class="cards">
+      <!-- Animés recommandés ici -->
+    </div>
+  </section>
 
+  <section>
+    <h2>📺 Animés du moment</h2>
+    <div id="current" class="cards">
+      <!-- Animés du moment ici -->
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>© 2025 AnimeGarden. Site de passionné d'animé et manga.</p>
+</footer>
+
+<!-- Chat Tawk.to (gratuit et facile à intégrer) -->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/64db6c74cc26a871b020a2a4/1h8n1lnne';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+
+<!-- JS pour récupérer les animés via l'API Jikan -->
+<script>
+async function fetchAnime(url, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = 'Chargement...';
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    container.innerHTML = ''; // Clear loading
+
+    const animes = data.data.slice(0, 8); // Prendre 8 animés max
+
+    animes.forEach(anime => {
+      const card = document.createElement('div');
+      card.classList.add('card');
+
+      card.innerHTML = `
+        <img src="${anime.images.webp.large_image_url}" alt="${anime.title}" />
+        <h3>${anime.title}</h3>
+        <p>${anime.synopsis ? anime.synopsis.substring(0, 100) + '...' : 'Pas de description'}</p>
+      `;
+
+      container.appendChild(card);
+    });
+  } catch (error) {
+    container.innerHTML = 'Erreur de chargement.';
+    console.error(error);
+  }
+}
+
+// URL Jikan API pour animés recommandés (top animés)
+const recommendedUrl = 'https://api.jikan.moe/v4/top/anime';
+
+// URL Jikan API pour animés du moment (saison actuelle)
+const currentSeasonUrl = 'https://api.jikan.moe/v4/seasons/now';
+
+// Charger les deux sections au chargement
+fetchAnime(recommendedUrl, 'recommended');
+fetchAnime(currentSeasonUrl, 'current');
+</script>
+
+</body>
+</html>
